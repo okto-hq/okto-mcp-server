@@ -13,6 +13,7 @@ import { OktoClientConfig } from "@okto_web3/core-js-sdk";
 import { getChains, getPortfolio } from "@okto_web3/core-js-sdk/explorer";
 import { getAccount } from "@okto_web3/core-js-sdk/explorer";
 import { getNftCollections } from "@okto_web3/core-js-sdk/explorer";
+import { getOrdersHistory } from "@okto_web3/core-js-sdk/explorer";
 import { GetSupportedNetworksResponseData, Order } from "@okto_web3/core-js-sdk/types";
 
 
@@ -489,6 +490,66 @@ mcpServer.tool(
           {
             type: "text",
             text: "Failed to retrieve NFT collections. Please ensure you are authenticated."
+          }
+        ]
+      };
+    }
+  }
+);
+
+mcpServer.tool(
+  "get-orders-history",
+  "Get Okto orders history",
+  {},
+  async () => {
+    try {
+      const orders = await getOrdersHistory(oktoClient);
+      
+      if (!orders || orders.length === 0) {
+        return {
+          content: [
+            {
+              type: "text",
+              text: "No orders history available."
+            }
+          ]
+        };
+      }
+      
+      let output = "Okto Orders History\n";
+      output += "=====================\n\n";
+      
+      orders.forEach((order: Order, index: number) => {
+        output += `Order ${index + 1}:\n`;
+        output += `  Intent ID              : ${order.intentId}\n`;
+        output += `  Intent Type            : ${order.intentType}\n`;
+        output += `  Status                 : ${order.status}\n`;
+        output += `  Network Name           : ${order.networkName}\n`;
+        output += `  CAIP ID                : ${order.caipId}\n`;
+        output += `  Transaction Hashes     : ${order.transactionHash.join(", ")}\n`;
+        output += `  Downstream Tx Hashes   : ${order.downstreamTransactionHash.join(", ")}\n`;
+        output += `  Details                : ${JSON.stringify(order.details, null, 2)}\n`;
+        output += "\n";
+      });
+
+      return {
+        content: [
+          {
+            type: "text",
+            text: output
+          }
+        ]
+      };
+    } catch (error) {
+      mcpServer.server.sendLoggingMessage({
+        level: "error",
+        data: "Error fetching orders history:" + error,
+      })
+      return {
+        content: [
+          {
+            type: "text",
+            text: "Failed to retrieve orders history. Please ensure you are authenticated."
           }
         ]
       };
