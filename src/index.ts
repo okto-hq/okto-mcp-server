@@ -16,6 +16,7 @@ import { getNftCollections } from "@okto_web3/core-js-sdk/explorer";
 import { getOrdersHistory } from "@okto_web3/core-js-sdk/explorer";
 import { getPortfolioNFT } from "@okto_web3/core-js-sdk/explorer";
 import { getTokens } from "@okto_web3/core-js-sdk/explorer";
+import { tokenTransfer } from "@okto_web3/core-js-sdk/userop";
 import { GetSupportedNetworksResponseData, Order, UserNFTBalance } from "@okto_web3/core-js-sdk/types";
 
 
@@ -131,11 +132,21 @@ interface Token {
   image: string;
 }
 
+type Address = `0x${string}`;
+type TokenTransferIntentParams = {
+    amount: number | bigint;
+    recipient: Address;
+    token: Address | '';
+    caip2Id: string;
+};
+
 // Create server instance
 const mcpServer = new McpServer({
   name: "okto",
   version: "1.0.0",
 });
+
+
 
 // Register weather tools
 // mcpServer.tool(
@@ -692,6 +703,68 @@ mcpServer.tool(
           {
             type: "text",
             text: "Failed to retrieve tokens. Please ensure you are authenticated."
+          }
+        ]
+      };
+    }
+  }
+);
+
+mcpServer.tool(
+  "token-transfer",
+  "Transfer tokens using Okto",
+  {
+    amount: z.string().describe("Amount of tokens to transfer in Wei"),
+    recipient: z.string().describe("Recipient address"),
+    token: z.string().describe("Token address (empty string for native token)"),
+    caip2Id: z.string().describe("CAIP2 ID of the network"),
+  },
+  async ({ amount, recipient, token, caip2Id }) => {
+    try {
+      const tokenTransferIntentParams: TokenTransferIntentParams = {
+        amount: BigInt(amount),
+        recipient: recipient as Address,
+        token: token as Address,
+        caip2Id
+      };
+
+      // Generate the user operation
+      const userOp = await tokenTransfer(oktoClient, tokenTransferIntentParams);
+      
+      // Sign the user operation
+      const signedUserOp = await oktoClient.signUserOp(userOp);
+      
+      // Execute the signed user operation
+      const orderId = await oktoClient.executeUserOp(signedUserOp);
+
+      const resultStr = `✅ Okto Transfer completed successfully.
+Transfer of ${amount} ${token || 'native token'} to ${recipient} on ${caip2Id}
+Order ID: ${orderId}
+`;
+
+      mcpServer.server.sendLoggingMessage({
+        level: "info",
+        data: resultStr,
+      });
+
+      return {
+        content: [
+          {
+            type: "text",
+            text: resultStr
+          }
+        ]
+      };
+    } catch (error) {
+      mcpServer.server.sendLoggingMessage({
+        level: "error",
+        data: "Error performing token transfer:" + error,
+      })
+      return {
+        content: [
+          {
+            type: "text",
+            text: "Failed to perform token transfer. Please ensure you are authenticated and have sufficient balance."
           }
         ]
       };
