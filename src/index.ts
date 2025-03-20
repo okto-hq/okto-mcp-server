@@ -14,7 +14,8 @@ import { getChains, getPortfolio } from "@okto_web3/core-js-sdk/explorer";
 import { getAccount } from "@okto_web3/core-js-sdk/explorer";
 import { getNftCollections } from "@okto_web3/core-js-sdk/explorer";
 import { getOrdersHistory } from "@okto_web3/core-js-sdk/explorer";
-import { GetSupportedNetworksResponseData, Order } from "@okto_web3/core-js-sdk/types";
+import { getPortfolioNFT } from "@okto_web3/core-js-sdk/explorer";
+import { GetSupportedNetworksResponseData, Order, UserNFTBalance } from "@okto_web3/core-js-sdk/types";
 
 
 dotenv.config();
@@ -550,6 +551,69 @@ mcpServer.tool(
           {
             type: "text",
             text: "Failed to retrieve orders history. Please ensure you are authenticated."
+          }
+        ]
+      };
+    }
+  }
+);
+
+mcpServer.tool(
+  "get-nft-portfolio",
+  "Get Okto NFT portfolio",
+  {},
+  async () => {
+    try {
+      const nfts = await getPortfolioNFT(oktoClient);
+      
+      if (!nfts || nfts.length === 0) {
+        return {
+          content: [
+            {
+              type: "text",
+              text: "No NFT portfolio available."
+            }
+          ]
+        };
+      }
+      
+      let output = "Okto NFT Portfolio\n";
+      output += "====================\n\n";
+      
+      nfts.forEach((nft: UserNFTBalance, index: number) => {
+        output += `NFT ${index + 1}:\n`;
+        output += `  Collection Name           : ${nft.collectionName}\n`;
+        output += `  NFT Name                  : ${nft.nftName}\n`;
+        output += `  Quantity                  : ${nft.quantity}\n`;
+        output += `  Network Name              : ${nft.networkName}\n`;
+        output += `  CAIP ID                   : ${nft.caipId}\n`;
+        output += `  NFT ID                    : ${nft.nftId}\n`;
+        output += `  Token URI                 : ${nft.tokenUri}\n`;
+        output += `  Description               : ${nft.description}\n`;
+        output += `  Explorer SmartContract URL: ${nft.explorerSmartContractUrl}\n`;
+        output += `  Image                     : ${nft.image}\n`;
+        output += `  Collection Image          : ${nft.collectionImage}\n`;
+        output += "\n";
+      });
+
+      return {
+        content: [
+          {
+            type: "text",
+            text: output
+          }
+        ]
+      };
+    } catch (error) {
+      mcpServer.server.sendLoggingMessage({
+        level: "error",
+        data: "Error fetching NFT portfolio:" + error,
+      })
+      return {
+        content: [
+          {
+            type: "text",
+            text: "Failed to retrieve NFT portfolio. Please ensure you are authenticated."
           }
         ]
       };
