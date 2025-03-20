@@ -15,6 +15,7 @@ import { getAccount } from "@okto_web3/core-js-sdk/explorer";
 import { getNftCollections } from "@okto_web3/core-js-sdk/explorer";
 import { getOrdersHistory } from "@okto_web3/core-js-sdk/explorer";
 import { getPortfolioNFT } from "@okto_web3/core-js-sdk/explorer";
+import { getTokens } from "@okto_web3/core-js-sdk/explorer";
 import { GetSupportedNetworksResponseData, Order, UserNFTBalance } from "@okto_web3/core-js-sdk/types";
 
 
@@ -114,6 +115,20 @@ interface Wallet {
   address: string;
   caip2Id: string;
   networkSymbol: string;
+}
+
+interface Token {
+  name: string;
+  symbol: string;
+  shortName: string;
+  address: string;
+  caipId: string;
+  groupId: string;
+  isPrimary: boolean;
+  caip2Id: string;
+  networkName: string;
+  isOnrampEnabled: boolean;
+  image: string;
 }
 
 // Create server instance
@@ -614,6 +629,69 @@ mcpServer.tool(
           {
             type: "text",
             text: "Failed to retrieve NFT portfolio. Please ensure you are authenticated."
+          }
+        ]
+      };
+    }
+  }
+);
+
+mcpServer.tool(
+  "get-tokens",
+  "Get Okto tokens",
+  {},
+  async () => {
+    try {
+      const tokens = await getTokens(oktoClient);
+      
+      if (!tokens || tokens.length === 0) {
+        return {
+          content: [
+            {
+              type: "text",
+              text: "No tokens available."
+            }
+          ]
+        };
+      }
+      
+      let output = "Okto Tokens\n";
+      output += "============\n\n";
+      
+      tokens.forEach((token: Token, index: number) => {
+        output += `Token ${index + 1}:\n`;
+        output += `  Name        : ${token.name}\n`;
+        output += `  Symbol      : ${token.symbol}\n`;
+        output += `  Short Name  : ${token.shortName}\n`;
+        output += `  Address     : ${token.address}\n`;
+        output += `  CAIP ID     : ${token.caipId}\n`;
+        output += `  Group ID    : ${token.groupId}\n`;
+        output += `  Is Primary  : ${token.isPrimary ? "Yes" : "No"}\n`;
+        output += `  CAIP2 ID    : ${token.caip2Id}\n`;
+        output += `  Network Name: ${token.networkName}\n`;
+        output += `  Onramp      : ${token.isOnrampEnabled ? "Enabled" : "Disabled"}\n`;
+        output += `  Image URL   : ${token.image}\n`;
+        output += "\n";
+      });
+
+      return {
+        content: [
+          {
+            type: "text",
+            text: output
+          }
+        ]
+      };
+    } catch (error) {
+      mcpServer.server.sendLoggingMessage({
+        level: "error",
+        data: "Error fetching tokens:" + error,
+      })
+      return {
+        content: [
+          {
+            type: "text",
+            text: "Failed to retrieve tokens. Please ensure you are authenticated."
           }
         ]
       };
