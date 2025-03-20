@@ -11,6 +11,7 @@ import * as dotenv from "dotenv";
 import { OktoClient } from "@okto_web3/core-js-sdk";
 import { OktoClientConfig } from "@okto_web3/core-js-sdk";
 import { getPortfolio } from "@okto_web3/core-js-sdk/explorer";
+import { getAccount } from "@okto_web3/core-js-sdk/explorer";
 
 dotenv.config();
 
@@ -100,6 +101,14 @@ interface ForecastResponse {
   properties: {
     periods: ForecastPeriod[];
   };
+}
+
+interface Wallet {
+  caipId: string;
+  networkName: string;
+  address: string;
+  caip2Id: string;
+  networkSymbol: string;
 }
 
 // Create server instance
@@ -293,12 +302,70 @@ mcpServer.tool(
         ]
       };
     } catch (error) {
-      console.error("Error fetching portfolio:", error);
+      mcpServer.server.sendLoggingMessage({
+        level: "error",
+        data: "Error fetching portfolio:" + error,
+      })
       return {
         content: [
           {
             type: "text",
             text: "Failed to retrieve portfolio data. Please ensure you are authenticated."
+          }
+        ]
+      };
+    }
+  }
+);
+
+mcpServer.tool(
+  "get-account",
+  "Get Okto account details",
+  {},
+  async () => {
+    try {
+      const account = await getAccount(oktoClient);
+      
+      let output = "Okto Account\n";
+      output += "===============\n\n";
+      
+      // Aggregated Data Section based on account data
+      output += "Aggregated Data:\n";
+      output += `  Wallet Count : ${account.length}\n\n`;
+
+      // Wallets Section
+      if (account.length > 0) {
+        output += "Wallets:\n";
+        account.forEach((wallet, index) => {
+          output += `\nWallet ${index + 1}:\n`;
+          output += `  CAIP ID      : ${wallet.caipId}\n`;
+          output += `  Network Name : ${wallet.networkName}\n`;
+          output += `  Address      : ${wallet.address}\n`;
+          output += `  CAIP2 ID     : ${wallet.caip2Id}\n`;
+          output += `  Network Sym. : ${wallet.networkSymbol}\n`;
+        });
+      } else {
+        output += "No wallets available.\n";
+      }
+
+      return {
+        content: [
+          {
+            type: "text",
+            text: output
+          }
+        ]
+      };
+    } catch (error) {
+      mcpServer.server.sendLoggingMessage({
+        level: "error",
+        data: "Error fetching account:" + error,
+      })
+      return {
+        content: [
+          {
+            type: "text",
+            text: "Failed to retrieve account data. Please ensure you are authenticated."
           }
         ]
       };
