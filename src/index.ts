@@ -829,7 +829,7 @@ async function authenticate() {
             scope: ['profile', 'email'],
         });
 
-        console.log('Please visit this URL to authenticate:', authUrl);
+        //console.log('Please visit this URL to authenticate:', authUrl);
         open(authUrl);
 
         server.on('request', async (req, res) => {
@@ -868,7 +868,7 @@ async function authenticate() {
 async function oktoAuthenticate() {
 
   if (!oauth2Client.credentials.id_token) {
-    console.error("No id_token found");
+    //console.error("No id_token found");
     return;
   }
 
@@ -878,7 +878,7 @@ async function oktoAuthenticate() {
       provider: 'google',
     })
   } catch (error) {
-    console.error("Okto Authentication failed:", error);
+    //console.error("Okto Authentication failed:", error);
   }
 }
 
