@@ -12,7 +12,8 @@ import { OktoClient } from "@okto_web3/core-js-sdk";
 import { OktoClientConfig } from "@okto_web3/core-js-sdk";
 import { getChains, getPortfolio } from "@okto_web3/core-js-sdk/explorer";
 import { getAccount } from "@okto_web3/core-js-sdk/explorer";
-import { GetSupportedNetworksResponseData } from "@okto_web3/core-js-sdk/types";
+import { getNftCollections } from "@okto_web3/core-js-sdk/explorer";
+import { GetSupportedNetworksResponseData, Order } from "@okto_web3/core-js-sdk/types";
 
 
 dotenv.config();
@@ -428,6 +429,66 @@ mcpServer.tool(
           {
             type: "text",
             text: "Failed to retrieve chain data. Please ensure you are authenticated."
+          }
+        ]
+      };
+    }
+  }
+);
+
+mcpServer.tool(
+  "get-nft-collections",
+  "Get Okto NFT collections",
+  {},
+  async () => {
+    try {
+      const nftCollections = await getNftCollections(oktoClient);
+      
+      if (!nftCollections || nftCollections.length === 0) {
+        return {
+          content: [
+            {
+              type: "text",
+              text: "No NFT Collections available."
+            }
+          ]
+        };
+      }
+      
+      let output = "Okto NFT Collections\n";
+      output += "======================\n\n";
+      
+      nftCollections.forEach((order: Order, index: number) => {
+        output += `Collection ${index + 1}:\n`;
+        output += `  Intent ID            : ${order.intentId}\n`;
+        output += `  Intent Type          : ${order.intentType}\n`;
+        output += `  Status               : ${order.status}\n`;
+        output += `  Network Name         : ${order.networkName}\n`;
+        output += `  CAIP ID              : ${order.caipId}\n`;
+        output += `  Transaction Hashes   : ${order.transactionHash.join(", ")}\n`;
+        output += `  Downstream Tx Hashes : ${order.downstreamTransactionHash.join(", ")}\n`;
+        output += `  Details              : ${JSON.stringify(order.details, null, 2)}\n`;
+        output += "\n";
+      });
+
+      return {
+        content: [
+          {
+            type: "text",
+            text: output
+          }
+        ]
+      };
+    } catch (error) {
+      mcpServer.server.sendLoggingMessage({
+        level: "error",
+        data: "Error fetching NFT collections:" + error,
+      })
+      return {
+        content: [
+          {
+            type: "text",
+            text: "Failed to retrieve NFT collections. Please ensure you are authenticated."
           }
         ]
       };
