@@ -10,6 +10,8 @@ import { OAuth2Client } from 'google-auth-library';
 import * as dotenv from "dotenv";
 import { OktoClient } from "@okto_web3/core-js-sdk";
 import { OktoClientConfig } from "@okto_web3/core-js-sdk";
+import { getPortfolio } from "@okto_web3/core-js-sdk/explorer";
+
 dotenv.config();
 
 const NWS_API_BASE = "https://api.weather.gov";
@@ -27,7 +29,6 @@ const clientConfig: OktoClientConfig = {
             clientPrivateKey: CLIENT_PRIVATE_KEY as any,
             clientSWA: CLIENT_SWA as any,
         }
-console.log("clientConfig", clientConfig);
 let oktoClient = new OktoClient(clientConfig);
 
 // OAuth2 configuration
@@ -102,142 +103,207 @@ interface ForecastResponse {
 }
 
 // Create server instance
-const server = new McpServer({
+const mcpServer = new McpServer({
   name: "okto",
   version: "1.0.0",
 });
 
 // Register weather tools
-server.tool(
-  "get-alerts",
-  "Get weather alerts for a state",
-  {
-    state: z.string().length(2).describe("Two-letter state code (e.g. CA, NY)"),
-  },
-  async ({ state }: { state: string }) => {
-    const stateCode = state.toUpperCase();
-    const alertsUrl = `${NWS_API_BASE}/alerts?area=${stateCode}`;
-    const alertsData = await makeNWSRequest<AlertsResponse>(alertsUrl);
+// mcpServer.tool(
+//   "get-alerts",
+//   "Get weather alerts for a state",
+//   {
+//     state: z.string().length(2).describe("Two-letter state code (e.g. CA, NY)"),
+//   },
+//   async ({ state }: { state: string }) => {
+//     const stateCode = state.toUpperCase();
+//     const alertsUrl = `${NWS_API_BASE}/alerts?area=${stateCode}`;
+//     const alertsData = await makeNWSRequest<AlertsResponse>(alertsUrl);
 
-    if (!alertsData) {
+//     if (!alertsData) {
+//       return {
+//         content: [
+//           {
+//             type: "text",
+//             text: "Failed to retrieve alerts data",
+//           },
+//         ],
+//       };
+//     }
+
+//     const features = alertsData.features || [];
+//     if (features.length === 0) {
+//       return {
+//         content: [
+//           {
+//             type: "text",
+//             text: `No active alerts for ${stateCode}`,
+//           },
+//         ],
+//       };
+//     }
+
+//     const formattedAlerts = features.map(formatAlert);
+//     const alertsText = `Active alerts for ${stateCode}:\n\n${formattedAlerts.join("\n")}`;
+
+//     return {
+//       content: [
+//         {
+//           type: "text",
+//           text: alertsText,
+//         },
+//       ],
+//     };
+//   },
+// );
+
+// mcpServer.tool(
+//   "get-forecast",
+//   "Get weather forecast for a location",
+//   {
+//     latitude: z.number().min(-90).max(90).describe("Latitude of the location"),
+//     longitude: z.number().min(-180).max(180).describe("Longitude of the location"),
+//   },
+//   async ({ latitude, longitude }: { latitude: number; longitude: number }) => {
+//     // Get grid point data
+//     const pointsUrl = `${NWS_API_BASE}/points/${latitude.toFixed(4)},${longitude.toFixed(4)}`;
+//     const pointsData = await makeNWSRequest<PointsResponse>(pointsUrl);
+
+//     if (!pointsData) {
+//       return {
+//         content: [
+//           {
+//             type: "text",
+//             text: `Failed to retrieve grid point data for coordinates: ${latitude}, ${longitude}. This location may not be supported by the NWS API (only US locations are supported).`,
+//           },
+//         ],
+//       };
+//     }
+
+//     const forecastUrl = pointsData.properties?.forecast;
+//     if (!forecastUrl) {
+//       return {
+//         content: [
+//           {
+//             type: "text",
+//             text: "Failed to get forecast URL from grid point data",
+//           },
+//         ],
+//       };
+//     }
+
+//     // Get forecast data
+//     const forecastData = await makeNWSRequest<ForecastResponse>(forecastUrl);
+//     if (!forecastData) {
+//       return {
+//         content: [
+//           {
+//             type: "text",
+//             text: "Failed to retrieve forecast data",
+//           },
+//         ],
+//       };
+//     }
+
+//     const periods = forecastData.properties?.periods || [];
+//     if (periods.length === 0) {
+//       return {
+//         content: [
+//           {
+//             type: "text",
+//             text: "No forecast periods available",
+//           },
+//         ],
+//       };
+//     }
+
+//     // Format forecast periods
+//     const formattedForecast = periods.map((period: ForecastPeriod) =>
+//       [
+//         `${period.name || "Unknown"}:`,
+//         `Temperature: ${period.temperature || "Unknown"}°${period.temperatureUnit || "F"}`,
+//         `Wind: ${period.windSpeed || "Unknown"} ${period.windDirection || ""}`,
+//         `${period.shortForecast || "No forecast available"}`,
+//         "---",
+//       ].join("\n"),
+//     );
+
+//     const forecastText = `Forecast for ${latitude}, ${longitude}:\n\n${formattedForecast.join("\n")}`;
+
+//     return {
+//       content: [
+//         {
+//           type: "text",
+//           text: forecastText,
+//         },
+//       ],
+//     };
+//   },
+// );
+
+mcpServer.tool(
+  "get-portfolio",
+  "Get Okto portfolio details",
+  {},
+  async () => {
+    try {
+      const portfolio = await getPortfolio(oktoClient);
+      
+      let output = "Okto Portfolio\n";
+      output += "===============\n\n";
+      
+      // Aggregated Data
+      output += "Aggregated Data:\n";
+      output += `  Holdings Count         : ${portfolio.aggregatedData.holdingsCount}\n`;
+      output += `  Holdings Price INR     : ${portfolio.aggregatedData.holdingsPriceInr}\n`;
+      output += `  Holdings Price USDT    : ${portfolio.aggregatedData.holdingsPriceUsdt}\n`;
+      output += `  Total Holding Price INR : ${portfolio.aggregatedData.totalHoldingPriceInr}\n`;
+      output += `  Total Holding Price USDT: ${portfolio.aggregatedData.totalHoldingPriceUsdt}\n\n`;
+      
+      // Group Tokens
+      if (portfolio.groupTokens && portfolio.groupTokens.length > 0) {
+        output += "Group Tokens:\n";
+        portfolio.groupTokens.forEach((group, groupIndex) => {
+          output += `\nGroup ${groupIndex + 1}: ${group.name} (${group.symbol})\n`;
+          output += `  Group Token Address : ${group.tokenAddress}\n`;
+          output += `  Balance             : ${group.balance}\n`;
+          output += `  Network             : ${group.networkName}\n`;
+          output += `  Sub Tokens:\n`;
+          if (group.tokens.length > 0) {
+            group.tokens.forEach((token, tokenIndex) => {
+              output += `    ${tokenIndex + 1}. ${token.name} (${token.symbol})\n`;
+              output += `       Address : ${token.tokenAddress}\n`;
+              output += `       Balance : ${token.balance}\n`;
+              output += `       Network : ${token.networkName}\n`;
+            });
+          } else {
+            output += "    No sub tokens available.\n";
+          }
+        });
+      } else {
+        output += "No group tokens available.\n";
+      }
+
       return {
         content: [
           {
             type: "text",
-            text: "Failed to retrieve alerts data",
-          },
-        ],
+            text: output
+          }
+        ]
       };
-    }
-
-    const features = alertsData.features || [];
-    if (features.length === 0) {
+    } catch (error) {
+      console.error("Error fetching portfolio:", error);
       return {
         content: [
           {
             type: "text",
-            text: `No active alerts for ${stateCode}`,
-          },
-        ],
+            text: "Failed to retrieve portfolio data. Please ensure you are authenticated."
+          }
+        ]
       };
     }
-
-    const formattedAlerts = features.map(formatAlert);
-    const alertsText = `Active alerts for ${stateCode}:\n\n${formattedAlerts.join("\n")}`;
-
-    return {
-      content: [
-        {
-          type: "text",
-          text: alertsText,
-        },
-      ],
-    };
-  },
-);
-
-server.tool(
-  "get-forecast",
-  "Get weather forecast for a location",
-  {
-    latitude: z.number().min(-90).max(90).describe("Latitude of the location"),
-    longitude: z.number().min(-180).max(180).describe("Longitude of the location"),
-  },
-  async ({ latitude, longitude }: { latitude: number; longitude: number }) => {
-    // Get grid point data
-    const pointsUrl = `${NWS_API_BASE}/points/${latitude.toFixed(4)},${longitude.toFixed(4)}`;
-    const pointsData = await makeNWSRequest<PointsResponse>(pointsUrl);
-
-    if (!pointsData) {
-      return {
-        content: [
-          {
-            type: "text",
-            text: `Failed to retrieve grid point data for coordinates: ${latitude}, ${longitude}. This location may not be supported by the NWS API (only US locations are supported).`,
-          },
-        ],
-      };
-    }
-
-    const forecastUrl = pointsData.properties?.forecast;
-    if (!forecastUrl) {
-      return {
-        content: [
-          {
-            type: "text",
-            text: "Failed to get forecast URL from grid point data",
-          },
-        ],
-      };
-    }
-
-    // Get forecast data
-    const forecastData = await makeNWSRequest<ForecastResponse>(forecastUrl);
-    if (!forecastData) {
-      return {
-        content: [
-          {
-            type: "text",
-            text: "Failed to retrieve forecast data",
-          },
-        ],
-      };
-    }
-
-    const periods = forecastData.properties?.periods || [];
-    if (periods.length === 0) {
-      return {
-        content: [
-          {
-            type: "text",
-            text: "No forecast periods available",
-          },
-        ],
-      };
-    }
-
-    // Format forecast periods
-    const formattedForecast = periods.map((period: ForecastPeriod) =>
-      [
-        `${period.name || "Unknown"}:`,
-        `Temperature: ${period.temperature || "Unknown"}°${period.temperatureUnit || "F"}`,
-        `Wind: ${period.windSpeed || "Unknown"} ${period.windDirection || ""}`,
-        `${period.shortForecast || "No forecast available"}`,
-        "---",
-      ].join("\n"),
-    );
-
-    const forecastText = `Forecast for ${latitude}, ${longitude}:\n\n${formattedForecast.join("\n")}`;
-
-    return {
-      content: [
-        {
-          type: "text",
-          text: forecastText,
-        },
-      ],
-    };
-  },
+  }
 );
 
 async function loadCredentials() {
@@ -281,9 +347,8 @@ async function loadCredentials() {
             oauth2Client.setCredentials(credentials);
         }
 
-        console.log('Credentials loaded successfully');
     } catch (error) {
-        console.error('Error loading credentials:', error);
+        // console.error('Error loading credentials:', error);
         process.exit(1);
     }
 }
@@ -346,7 +411,6 @@ async function oktoAuthenticate() {
       idToken: oauth2Client.credentials.id_token, 
       provider: 'google',
     })
-    console.log("Okto Authentication successful");
   } catch (error) {
     console.error("Okto Authentication failed:", error);
   }
@@ -359,7 +423,6 @@ async function main() {
   // Manual authentication
   if (process.argv[2] === 'auth' ) {
       await authenticate();
-      console.log('Authentication completed successfully');
       process.exit(0);
   }
 
@@ -372,15 +435,14 @@ async function main() {
      oauth2Client.credentials.expiry_date < Date.now() + EXPIRY_BUFFER);
   if (needsAuth) {
       await authenticate();
-      console.log('Authentication completed successfully');
   }
 
   // console.log("id_token", oauth2Client.credentials.id_token);
   await oktoAuthenticate();
 
   const transport = new StdioServerTransport();
-  await server.connect(transport);
-  console.error("Weather MCP Server running on stdio");
+  await mcpServer.connect(transport);
+  console.error("Okto MCP Server running on stdio");
 }
 
 main().catch((error) => {
