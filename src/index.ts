@@ -10,8 +10,10 @@ import { OAuth2Client } from 'google-auth-library';
 import * as dotenv from "dotenv";
 import { OktoClient } from "@okto_web3/core-js-sdk";
 import { OktoClientConfig } from "@okto_web3/core-js-sdk";
-import { getPortfolio } from "@okto_web3/core-js-sdk/explorer";
+import { getChains, getPortfolio } from "@okto_web3/core-js-sdk/explorer";
 import { getAccount } from "@okto_web3/core-js-sdk/explorer";
+import { GetSupportedNetworksResponseData } from "@okto_web3/core-js-sdk/types";
+
 
 dotenv.config();
 
@@ -366,6 +368,66 @@ mcpServer.tool(
           {
             type: "text",
             text: "Failed to retrieve account data. Please ensure you are authenticated."
+          }
+        ]
+      };
+    }
+  }
+);
+
+mcpServer.tool(
+  "get-chains",
+  "Get Okto supported chains",
+  {},
+  async () => {
+    try {
+      const chains = await getChains(oktoClient);
+      
+      if (!chains || chains.length === 0) {
+        return {
+          content: [
+            {
+              type: "text",
+              text: "No chain data available."
+            }
+          ]
+        };
+      }
+      
+      let output = "Okto Supported Chains\n";
+      output += "======================\n\n";
+      
+      chains.forEach((chain: GetSupportedNetworksResponseData, index: number) => {
+        output += `Chain ${index + 1}:\n`;
+        output += `  CAIP ID         : ${chain.caipId}\n`;
+        output += `  Network Name    : ${chain.networkName}\n`;
+        output += `  Chain ID        : ${chain.chainId}\n`;
+        output += `  Network ID      : ${chain.networkId}\n`;
+        output += `  Logo            : ${chain.logo}\n`;
+        output += `  Type            : ${chain.type}\n`;
+        output += `  Sponsorship     : ${chain.sponsorshipEnabled ? 'Enabled' : 'Disabled'}\n`;
+        output += `  GSN             : ${chain.gsnEnabled ? 'Enabled' : 'Disabled'}\n`;
+        output += "\n";
+      });
+
+      return {
+        content: [
+          {
+            type: "text",
+            text: output
+          }
+        ]
+      };
+    } catch (error) {
+      mcpServer.server.sendLoggingMessage({
+        level: "error",
+        data: "Error fetching chains:" + error,
+      })
+      return {
+        content: [
+          {
+            type: "text",
+            text: "Failed to retrieve chain data. Please ensure you are authenticated."
           }
         ]
       };
