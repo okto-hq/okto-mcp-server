@@ -7,12 +7,29 @@ import open from 'open';
 import os from 'os';
 import fs from 'fs';
 import { OAuth2Client } from 'google-auth-library';
+import * as dotenv from "dotenv";
+import { OktoClient } from "@okto_web3/core-js-sdk";
+import { OktoClientConfig } from "@okto_web3/core-js-sdk";
+dotenv.config();
 
 const NWS_API_BASE = "https://api.weather.gov";
 const USER_AGENT = "weather-app/1.0";
 const CONFIG_DIR = path.join(os.homedir(), '.okto-mcp');
 const OAUTH_PATH = process.env.GMAIL_OAUTH_PATH || path.join(CONFIG_DIR, 'gcp-oauth.keys.json');
 const CREDENTIALS_PATH = process.env.GMAIL_CREDENTIALS_PATH || path.join(CONFIG_DIR, 'credentials.json');
+const ENVIRONMENT = process.env.OKTO_ENVIRONMENT || 'sandbox';
+const CLIENT_PRIVATE_KEY = process.env.OKTO_CLIENT_PRIVATE_KEY!;
+const CLIENT_SWA = process.env.OKTO_CLIENT_SWA!;
+
+
+const clientConfig: OktoClientConfig = {
+            environment: ENVIRONMENT as any,
+            clientPrivateKey: CLIENT_PRIVATE_KEY as any,
+            clientSWA: CLIENT_SWA as any,
+        }
+console.log("clientConfig", clientConfig);
+let oktoClient = new OktoClient(clientConfig);
+
 // OAuth2 configuration
 let oauth2Client: OAuth2Client;
 
@@ -317,26 +334,49 @@ async function authenticate() {
     });
 }
 
+async function oktoAuthenticate() {
+
+  if (!oauth2Client.credentials.id_token) {
+    console.error("No id_token found");
+    return;
+  }
+
+  try {
+    const user = await oktoClient.loginUsingOAuth({
+      idToken: oauth2Client.credentials.id_token, 
+      provider: 'google',
+    })
+    console.log("Okto Authentication successful");
+  } catch (error) {
+    console.error("Okto Authentication failed:", error);
+  }
+}
+
 // Start the server
 async function main() {
   await loadCredentials();
 
-  const EXPIRY_BUFFER = 60 * 1000; // 60 seconds in milliseconds
-  const needsAuth = process.argv[2] === 'auth' || 
-    !oauth2Client.credentials ||
-    !oauth2Client.credentials.access_token ||
-    !oauth2Client.credentials.id_token ||
-    (oauth2Client.credentials.expiry_date && 
-     oauth2Client.credentials.expiry_date < Date.now() + EXPIRY_BUFFER);
-
-
-  if (needsAuth) {
+  // Manual authentication
+  if (process.argv[2] === 'auth' ) {
       await authenticate();
       console.log('Authentication completed successfully');
       process.exit(0);
   }
 
+  // Automatic authentication
+  const EXPIRY_BUFFER = 60 * 1000; // 60 seconds in milliseconds
+  const needsAuth = !oauth2Client.credentials ||
+    !oauth2Client.credentials.access_token ||
+    !oauth2Client.credentials.id_token ||
+    (oauth2Client.credentials.expiry_date && 
+     oauth2Client.credentials.expiry_date < Date.now() + EXPIRY_BUFFER);
+  if (needsAuth) {
+      await authenticate();
+      console.log('Authentication completed successfully');
+  }
+
   // console.log("id_token", oauth2Client.credentials.id_token);
+  await oktoAuthenticate();
 
   const transport = new StdioServerTransport();
   await server.connect(transport);
