@@ -54,14 +54,14 @@ A Model Context Protocol (MCP) server for Okto Web3 integration in Claude Deskto
    mv gcp-oauth.keys.json ~/.okto-mcp/
 
    # Run authentication from anywhere
-   npx @okto_web3/okto-mcp-server auth
+   npx @okto_web3/okto-mcp-server@latest auth
    ```
 
    b. Local Authentication:
    ```bash
    # Place gcp-oauth.keys.json in your current directory
    # The file will be automatically copied to global config
-   npx @okto_web3/okto-mcp-server auth
+   npx @okto_web3/okto-mcp-server@latest auth
    ```
 
    The authentication process will:
