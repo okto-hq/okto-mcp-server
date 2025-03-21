@@ -1,7 +1,7 @@
 {
   "name": "@okto_web3/okto-mcp-server",
-  "version": "1.0.0",
-  "main": "index.js",
+  "version": "0.0.0-dev.0",
+  "main": "build/index.js",
   "type": "module",
   "bin": {
     "okto-mcp": "./build/index.js"
@@ -12,12 +12,37 @@
     "inspector": "pnpm run build && npx @modelcontextprotocol/inspector node build/index.js"
   },
   "files": [
-    "build"
+    "build",
+    "README.md"
   ],
-  "keywords": [],
-  "author": "",
+  "keywords": [
+    "okto",
+    "mcp",
+    "cursor",
+    "ai",
+    "oauth",
+    "model-context-protocol",
+    "defi",
+    "claude",
+    "auto-auth"
+  ],
+  "author": "Jovian Dsouza <jovian.dsouza@coindcx.com>",
   "license": "ISC",
-  "description": "",
+  "description": "Okto Web3 MCP Server",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/okto-hq/okto-mcp-server.git"
+  },
+  "bugs": {
+    "url": "https://github.com/okto-hq/okto-mcp-server/issues"
+  },
+  "homepage": "https://github.com/okto-hq/okto-mcp-server#readme",
+  "publishConfig": {
+    "access": "public"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
   "devDependencies": {
     "@types/node": "^22.10.0",
     "typescript": "^5.7.2"
