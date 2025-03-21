@@ -1,6 +1,6 @@
 {
   "name": "@okto_web3/okto-mcp-server",
-  "version": "0.0.0-dev.0",
+  "version": "0.0.0-dev.3",
   "main": "build/index.js",
   "type": "module",
   "bin": {

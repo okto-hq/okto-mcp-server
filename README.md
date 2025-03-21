@@ -115,7 +115,7 @@ Alternatively, if you installed via npm:
         "OKTO_CLIENT_SWA": "your_swa_here"
       },
       "args": [
-        "@okto_web3/okto-mcp-server"
+        "@okto_web3/okto-mcp-server@latest"
       ]
     }
   }
