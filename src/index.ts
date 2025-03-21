@@ -1,3 +1,4 @@
+#!/usr/bin/env node
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod";
@@ -9,7 +10,7 @@ import fs from 'fs';
 import { OAuth2Client } from 'google-auth-library';
 import * as dotenv from "dotenv";
 import { OktoClient } from "@okto_web3/core-js-sdk";
-import { OktoClientConfig } from "@okto_web3/core-js-sdk";
+import type { OktoClientConfig } from "@okto_web3/core-js-sdk";
 import { getChains, getPortfolio } from "@okto_web3/core-js-sdk/explorer";
 import { getAccount } from "@okto_web3/core-js-sdk/explorer";
 import { getNftCollections } from "@okto_web3/core-js-sdk/explorer";
@@ -17,7 +18,7 @@ import { getOrdersHistory } from "@okto_web3/core-js-sdk/explorer";
 import { getPortfolioNFT } from "@okto_web3/core-js-sdk/explorer";
 import { getTokens } from "@okto_web3/core-js-sdk/explorer";
 import { tokenTransfer } from "@okto_web3/core-js-sdk/userop";
-import { GetSupportedNetworksResponseData, Order, UserNFTBalance } from "@okto_web3/core-js-sdk/types";
+import type { GetSupportedNetworksResponseData, Order, UserNFTBalance } from "@okto_web3/core-js-sdk/types";
 
 
 dotenv.config();
@@ -96,14 +97,33 @@ mcpServer.tool(
       // Group Tokens
       if (portfolio.groupTokens && portfolio.groupTokens.length > 0) {
         output += "Group Tokens:\n";
-        portfolio.groupTokens.forEach((group, groupIndex) => {
+        portfolio.groupTokens.forEach((group: { 
+          name: string;
+          symbol: string;
+          tokenAddress: string;
+          balance: string;
+          networkName: string;
+          tokens: Array<{
+            name: string;
+            symbol: string;
+            tokenAddress: string;
+            balance: string;
+            networkName: string;
+          }>;
+        }, groupIndex: number) => {
           output += `\nGroup ${groupIndex + 1}: ${group.name} (${group.symbol})\n`;
           output += `  Group Token Address : ${group.tokenAddress}\n`;
           output += `  Balance             : ${group.balance}\n`;
           output += `  Network             : ${group.networkName}\n`;
           output += `  Sub Tokens:\n`;
           if (group.tokens.length > 0) {
-            group.tokens.forEach((token, tokenIndex) => {
+            group.tokens.forEach((token: {
+              name: string;
+              symbol: string;
+              tokenAddress: string;
+              balance: string;
+              networkName: string;
+            }, tokenIndex: number) => {
               output += `    ${tokenIndex + 1}. ${token.name} (${token.symbol})\n`;
               output += `       Address : ${token.tokenAddress}\n`;
               output += `       Balance : ${token.balance}\n`;
@@ -160,7 +180,13 @@ mcpServer.tool(
       // Wallets Section
       if (account.length > 0) {
         output += "Wallets:\n";
-        account.forEach((wallet, index) => {
+        account.forEach((wallet: {
+          caipId: string;
+          networkName: string;
+          address: string;
+          caip2Id: string;
+          networkSymbol: string;
+        }, index: number) => {
           output += `\nWallet ${index + 1}:\n`;
           output += `  CAIP ID      : ${wallet.caipId}\n`;
           output += `  Network Name : ${wallet.networkName}\n`;
@@ -512,7 +538,12 @@ mcpServer.tool(
     token: z.string().describe("Token address (empty string for native token)"),
     caip2Id: z.string().describe("CAIP2 ID of the network"),
   },
-  async ({ amount, recipient, token, caip2Id }) => {
+  async ({ amount, recipient, token, caip2Id }: { 
+    amount: string;
+    recipient: string;
+    token: string;
+    caip2Id: string;
+  }) => {
     try {
       const tokenTransferIntentParams: TokenTransferIntentParams = {
         amount: BigInt(amount),
