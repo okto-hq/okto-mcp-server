@@ -28,6 +28,10 @@ const CREDENTIALS_PATH = process.env.GMAIL_CREDENTIALS_PATH || path.join(CONFIG_
 const ENVIRONMENT = process.env.OKTO_ENVIRONMENT || 'sandbox';
 const CLIENT_PRIVATE_KEY = process.env.OKTO_CLIENT_PRIVATE_KEY!;
 const CLIENT_SWA = process.env.OKTO_CLIENT_SWA!;
+const OAUTH_REDIRECT_URI = process.env.OAUTH_REDIRECT_URI || 'http://localhost:3000/oauth2callback';
+const url = new URL(OAUTH_REDIRECT_URI);
+const OAUTH_PORT = url.port; 
+const OAUTH_BASE_URL = `${url.protocol}//${url.hostname}:${url.port}`;
 
 
 const clientConfig: OktoClientConfig = {
@@ -531,10 +535,10 @@ Transfer of ${amount} ${token || 'native token'} to ${recipient} on ${caip2Id}
 Order ID: ${orderId}
 `;
 
-      mcpServer.server.sendLoggingMessage({
-        level: "info",
-        data: resultStr,
-      });
+      // mcpServer.server.sendLoggingMessage({
+      //   level: "info",
+      //   data: resultStr,
+      // });
 
       return {
         content: [
@@ -594,7 +598,7 @@ async function loadCredentials() {
         oauth2Client = new OAuth2Client(
             keys.client_id,
             keys.client_secret,
-            'http://localhost:3000/oauth2callback'
+            OAUTH_REDIRECT_URI
         );
 
         if (fs.existsSync(CREDENTIALS_PATH)) {
@@ -610,7 +614,7 @@ async function loadCredentials() {
 
 async function authenticate() {
     const server = http.createServer();
-    server.listen(3000);
+    server.listen(OAUTH_PORT);
 
     return new Promise<void>((resolve, reject) => {
         const authUrl = oauth2Client.generateAuthUrl({
@@ -624,7 +628,7 @@ async function authenticate() {
         server.on('request', async (req, res) => {
             if (!req.url?.startsWith('/oauth2callback')) return;
 
-            const url = new URL(req.url, 'http://localhost:3000');
+            const url = new URL(req.url, OAUTH_BASE_URL);
             const code = url.searchParams.get('code');
 
             if (!code) {
